@@ -1,23 +1,42 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, Request, Form, HTTPException
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+from database import get_db
+from models import Curso, Aluno
 
 #Inicializar o FastAPI
 app = FastAPI(tittle="Gesão escolar")
 
-#Rota
-@app.get("/")
-def tela_inicial():
-    return {"mensagem": "Bem-vindo ao sistema de gestão escolar"}
+
+templates = Jinja2Templates(directory="templates")
 
 #Rodar api
 # no terminal: python -m uvicorn main:app --reload
 
-#Rota de dados
-alunos = {
-    1: {"nome": "Gabriel", "idade": 34},
-    2: {"nome": "Cassio", "idade": 67},
-    3: {"nome": "Balder", "idade": 69},
-}
+#ROTA
+# Métodos http: GET, POST, PUT, DELETE
 
-@app.get("/alunos")
-def listar_alunos():
-    return {f"lista de alunos": alunos}
+@app.get("/cursos/cadastro")
+def exibir_cadastro(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "cadastrar_curso.html",
+        {"request": request}
+    )
+
+#Rota para cadastrar um curso
+@app.post("/cursos")
+def criar_curso(
+    nome:str = Form(...),
+    carga_horaria: int = Form(...),
+    descricao: str = Form(...),
+    db: Session = Depends(get_db)
+
+):
+    #CADASTRAR O CURSO NO BANCO
+    novo_curso = Curso(nome=nome, carga_horaria=carga_horaria, descricao=descricao)
+    db.add(novo_curso)
+    db.commit()
+
+    return RedirectResponse(url="/cursos", status_code=303)
